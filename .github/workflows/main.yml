@@ -41,7 +41,7 @@ jobs:
     - run: export LC_ALL=C.UTF-8
     - run: export LANG=C.UTF-8
     - run: sudo apt install -y python3.6 python3-pip virtualenv
-    - run: sudo python3.6 -m pip install --upgrade pip==18.0 setuptools=40.6.3
+    - run: sudo python3.6 -m pip install --upgrade pip==18.0 setuptools==40.6.3
     - run: |
         curl -o cfs.zip https://rivera.canvasslabs.com:5000/canvass_for_security/client/download/linux
         unzip cfs.zip

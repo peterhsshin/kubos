@@ -1,0 +1,71 @@
+# This workflow will do a clean install of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Canvasslabs CFS Node.js CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  security_scan:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - run: | 
+        echo $PWD
+        mkdir unique_name
+        ls -la 
+        shopt -s extglob
+        mv !(unique_name) unique_name
+        echo $PWD
+        ls -la
+        
+    # - name: Use Node.js version:16
+    #   uses: actions/setup-node@v2
+    #   with:
+    #     node-version: '16'
+    #     cache: 'npm'
+    - name: Set up JDK 11
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'adopt'
+    - run: sudo apt update -y
+    - run: sudo apt install -y software-properties-common
+    - run: sudo add-apt-repository -y ppa:deadsnakes/ppa
+    - run: sudo apt install -y curl git unzip
+    - run: java -version
+    - run: export LC_ALL=C.UTF-8
+    - run: export LANG=C.UTF-8
+    - run: sudo apt install -y python3.6 python3-pip virtualenv
+    - run: sudo python3.6 -m pip install --upgrade pip==18.0 setuptools
+    - run: |
+        curl -o cfs.zip https://rivera.canvasslabs.com:5000/canvass_for_security/client/download/linux
+        unzip cfs.zip
+        rm cfs.zip
+    - name: "CFS version checking"    
+      env:
+        CL_API_TOKEN: ${{ secrets.CL_API_TOKEN }}
+      run: ./CanvassForSecurity version
+    - run: | 
+        curl -o ort_binaries_only.zip https://rivera.canvasslabs.com:5000/client/download/ort
+        unzip ort_binaries_only.zip
+        rm ort_binaries_only.zip
+    - run: |
+        virtualenv --python=python3.6 venv
+        source venv/bin/activate
+        cd ./ort
+        set +e
+        ./bin/ort analyze --input-dir ../unique_name --output-dir ../analyzer_results
+        set -e
+        if [ $? -eq 1 ]; then exit 1; fi
+        cd ..
+        # set up your canvasslabs's credential using pipeline's variables. See the Getting Started guide.
+        # Submit source code and analyzer results to LiAnORT, including the security tool. If you are not using this tool, comment out the below line.
+    - name: "CFS security scan"
+      env:
+        CL_API_TOKEN: ${{ secrets.CL_API_TOKEN }}
+      run: ./CanvassForSecurity scan ./analyzer_results/analyzer-result.yml
